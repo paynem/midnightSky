@@ -93,8 +93,12 @@ import './general.js';
         takes the position of the mouse into account.
   END OF PART 3 - TEST AND DEBUG YOUR CODE - YOU SHOULD SEE CONSTELLATIONS ON YOUR PAGE       
 */
-/******
+/****** 
  * class midnightsky
+ * This program populates a canvas (which is essentially the size of a browser window) with different-sized stars.
+ * It then animates them and has them move around the screen in random directions (i will elaborate more on this later).
+ * Additionally, as you move your mouse pointer around the canvas, it draws lines that connect all of the stars 
+ * that are within a certain distance/proximity
  ******/
 class MidnightSky {
 
@@ -102,8 +106,12 @@ class MidnightSky {
        
         //this.$canvas = document.querySelector('#imgCanvas');
         this.$canvas = document.getElementById("imgCanvas");
+        // By giving $context this value, we're essentially setting things up so that we can do 2d drawings on the canvas
         this.$context = this.$canvas.getContext('2d');
         //this.$animationFrame;
+
+        // defaults is an object with all of the default data needed to set up the stars, the lines (for the mouse pointer effect),
+        // and other misc. things.
         this.defaults = {
             star: {
                 color: 'rgba(255, 255, 255, .5)',
@@ -126,17 +134,27 @@ class MidnightSky {
             radius: 150,
             stars: []
         };
+        // all of the data from defaults is copied over to the config object.  By using stringify and then parse, config becomes
+        // its own object with a separate copy of all of the data from defaults (we don't want it to simply be a reference to the
+        // contents of defaults, because we don't ever want to manipulate or change that data)
         this.config = JSON.parse(JSON.stringify(this.defaults));
+        // These are calls to a series of methods that allow the constructor to populate (and animate) the canvas with stars
         this.setCanvas();
         this.setContext();
         this.setInitialPosition();
         this.createStars();
         this.drawStars();
+        //  the constructor uses setInterval to call animate stars every 1/60th of a second (which redraws the stars and connecting lines
+        // in different locations and gives the appearance that they moving around)
         setInterval(this.animateStars.bind(this), 1000/60);
+        //  This is the event handler (or whatever) that allows the program to track and respond to mouse pointer movement on the canvas,
+        // which is important for the line animation effect
         document.getElementById("imgCanvas").onmousemove = this.highlight.bind(this);
     }
     /******
     * setCanvas method
+    * setCanvas sets the canvas height and width to the height and width values in config, which are the height and width of the 
+    * browser window's content area
     ******/
     setCanvas() {
         this.$canvas.height = this.config.height;
@@ -146,6 +164,12 @@ class MidnightSky {
     }
     /******
     * setContext method
+    * earlier we set $context equal to the getContext('2d') method, which allows us to make 2d drawings on the canvas
+    * Linewidth, strokestyle, and fillstyle are all drawing tools/settings that we need to configure before we can start drawing.
+    * linewidth (which is the width of the line that we will be drawing on the canvas) is set to the default value for a star
+    * that we copied from the defaults object into config
+    * strokestyle determines the color, gradient, or pattern for the outlines of our lines (we set it to the default value from config.star)
+    * Fillstyle determines the color, gradient, or pattern to use inside of lines or shapes (set to default value from config.star)
     ******/
     setContext() {
        
@@ -155,6 +179,8 @@ class MidnightSky {
     }
     /******
     * setInitialPosition method
+    * config.position.x/y are two variables that we will use to keep track of the position of the mouse pointer when it is on the canvas.
+    * this method sets the initial value to the center of the canvas
     ******/
     setInitialPosition() {
         this.config.position.x = this.$canvas.width/2;
@@ -162,6 +188,10 @@ class MidnightSky {
     }
     /******
     * createStar method
+    * This method creates and returns an object that has all of the information necessary for the program to create a star.  It takes default data
+    * from config.star and then adds additional properties (positon of the star, velocity of the star, and radius of the star).
+    * all of the additional properties have randomly generated numbers as values ( between -10 and 10 for velocity, and a random number
+    * relative to the canvas width and height for the x and y coordinates. radius is a random number between 1 and 5)
     ******/
     createStar() {
         let num = Math.floor(Math.random()*10) + 1; 
@@ -183,6 +213,9 @@ class MidnightSky {
     }
     /******
     * createStars method
+    * createstars generates stars by repeatedly calling the createstar method. Everytime it generates a new star, it takes that information
+    * and inserts it into the config.stars array (it does this 100 times)
+    * This method is called by the constructor (in order to generate all of the stars)
     ******/
     createStars() {
         
@@ -195,6 +228,13 @@ class MidnightSky {
             
         }
     }
+    /******
+     * drawStars method
+     * drawStars draws a randomly sized (it uses the radius value of the star object that it is passed) star in the shape of a tiny x.
+     * It also temporarily sets the width of the lines that connect the stars close to the mouse pointer to the value in config.line
+     * and then calls the drawLines method (which, obviously, draws the aforementioned lines)
+     * after the method call, it sets the linewidth value back to its original value (the linewidth for stars)
+     ******/
     drawStar(star) {
         
         this.$context.beginPath();
@@ -214,6 +254,13 @@ class MidnightSky {
 
 
     }
+    /******
+     * drawStars method
+     * This method makes a call (and passes a star object each time) to drawStar for each star in the 
+     * config.stars array.  drawstar then takes the passed in star data and uses it to draw each star on the canvas.
+     * It also clears the canvas before it begins the process of drawing (or redrawing) all of the stars
+     * 
+     ******/
     drawStars() {
         this.drawStar = this.drawStar.bind(this);
         this.$context.clearRect(0, 0, this.config.width, this.config.height);
@@ -223,6 +270,11 @@ class MidnightSky {
         }
         
     }
+    /******
+     * moveStar method
+     * movestar use the velocity values that were generated when all of the stars were initially created and uses them to adjust the 
+     * x and y values of each individual star
+     ******/
     moveStar(star) {
         star.x += star.vx;
         star.y += star.vy;
@@ -244,6 +296,11 @@ class MidnightSky {
         }
 
     }
+    /******
+     * moveStars method
+     * This method calls (and passes in a star object from the config.stars array) the moveStar method to change the X and y values
+     * of each star on the canvas.
+     ******/
     moveStars() {
         this.moveStar = this.moveStar.bind(this);
         for (let i = 0; i < this.config.length; i++)
@@ -252,6 +309,11 @@ class MidnightSky {
         }
 
     }
+    /******
+     * animateStars method
+     * animateS
+     * 
+     ******/
     animateStars() {
         this.$context.clearRect(0, 0, this.config.width, this.config.height);
         this.moveStars = this.moveStars.bind(this);
@@ -261,11 +323,18 @@ class MidnightSky {
             this.drawStar(this.config.stars[i]);
         }
     }
-    
+    /******
+     * 
+     * 
+     ******/
     highlight(e) {
         this.config.position.x = e.pageX //- this.$canvas.offsetLeft;
         this.config.position.y = e.pageY //- this.$canvas.offsetTop;
     }
+    /******
+     * 
+     * 
+     ******/
     drawLines () {
         for (let i = 0; i < this.config.length; i++) {
             for (let j = 0; j < this.config.length; j++) {
