@@ -229,11 +229,11 @@ class MidnightSky {
         }
     }
     /******
-     * drawStars method
-     * drawStars draws a randomly sized (it uses the radius value of the star object that it is passed) star in the shape of a tiny x.
-     * It also temporarily sets the width of the lines that connect the stars close to the mouse pointer to the value in config.line
-     * and then calls the drawLines method (which, obviously, draws the aforementioned lines)
-     * after the method call, it sets the linewidth value back to its original value (the linewidth for stars)
+     * drawStar method
+     * drawStaw draws a randomly sized (it uses the radius value of the star object that it is passed) star in the shape of a tiny x.
+     * originally, I used this method to call drawLines, but then it dawned on me that running drawLines (which runs through a series
+     * of nested if-statetements and for-loops thousands of times ) was unnecessarily resource intensive.  I decided to move drawLines to 
+     * animateStars, which resulted in far better performance (and the lines are still drawn at a satisfactory rate)
      ******/
     drawStar(star) {
         
@@ -247,10 +247,10 @@ class MidnightSky {
         this.$context.lineTo(star.x+star.radius, star.y-star.radius);
         this.$context.stroke();
         this.$context.closePath();
-        this.$context.lineWidth  = this.config.line.width;
+        /*this.$context.lineWidth  = this.config.line.width;
         this.drawLines = this.drawLines.bind(this);
         this.drawLines();
-        this.$context.lineWidth  = this.config.star.width;
+        this.$context.lineWidth  = this.config.star.width;*/
 
 
     }
@@ -268,6 +268,7 @@ class MidnightSky {
         {
             this.drawStar(this.config.stars[i]);
         }
+        
         
     }
     /******
@@ -311,8 +312,15 @@ class MidnightSky {
     }
     /******
      * animateStars method
-     * animateS
-     * 
+     * animateStars clears the canvas.  It then calls moveStars, which uses the velocity values of each star on the canvas to change
+     * their x and y values.  animateStars then calls drawStar for each individual star and redraws all of them on the canvas with the new position data.
+     * the constructor is set to call animateStars every 1/60th of a second (so the stars are redrawn with updated position data frequently enough
+     * to appear like they're moving).
+     * It is also important to note that animateStars is also being used to draw connecting lines between all of the stars that are close
+     * to the mouse pointer
+     * ALSO, animateStars calls drawLines (and temporarily adjusts the linewidth to the setting in config.line). So, instead
+     * of calling drawLines 6000 times a second (which is what happened when drawStar was the method that was calling drawLines), the program
+     * only calls drawLines 60 times per second (which produces far better performance)
      ******/
     animateStars() {
         this.$context.clearRect(0, 0, this.config.width, this.config.height);
@@ -322,9 +330,15 @@ class MidnightSky {
         {
             this.drawStar(this.config.stars[i]);
         }
+        this.$context.lineWidth  = this.config.line.width;
+        this.drawLines = this.drawLines.bind(this);
+        this.drawLines();
+        this.$context.lineWidth  = this.config.star.width;
     }
     /******
-     * 
+     * highlight method
+     * highlight is called everytime the onmousemove eventhandler (or whatever) fires.  This allows the program to keep track of the position
+     * of the mouse pointer on the canvas.  It assigns the position data of the mouse pointer to the config.position.x/y properties
      * 
      ******/
     highlight(e) {
@@ -332,8 +346,13 @@ class MidnightSky {
         this.config.position.y = e.pageY //- this.$canvas.offsetTop;
     }
     /******
-     * 
-     * 
+     * drawLines method
+     * drawLines handles the bulk of the work of drawing connecting lines between stars that are close to the mouse pointer.
+     * the config object has a radius value and a distance value.  The method picks a star (the istar) and then compares its position to every other
+     * star (the jstars) on the canvas.  If the distance between the two stars falls within the range of the config.distance value, drawlines then
+     * checks the distance between the istar and the mouse pointer.  If the distance between the istar and the mouse pointer falls within
+     * the range of the config.radius value, it will draw a connecting line between the istar and the jstar.
+     * This method is called by animateStars after it finishes redrawing each star with the drawStar method
      ******/
     drawLines () {
         for (let i = 0; i < this.config.length; i++) {
